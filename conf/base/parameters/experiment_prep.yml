@@ -1,0 +1,11 @@
+# This is a boilerplate parameters config generated for pipeline 'modeling_prep'
+# using Kedro 0.18.4.
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://kedro.readthedocs.io/en/0.18.4/kedro_project_setup/configuration.html#parameters
+
+experiment_prep:
+  random_state: 123
+  test_size: 0.15
+  kfold: 10
+  kfold_seed: 456

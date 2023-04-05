@@ -1,0 +1,219 @@
+# Here you can define all your data sets by using simple YAML syntax.
+#
+# Documentation for this file format can be found in "The Data Catalog"
+# Link: https://kedro.readthedocs.io/en/stable/data/data_catalog.html
+
+data_processing.amazon_data:
+    type: pandas.JSONDataSet
+    filepath: data/01_raw/All_Beauty_5.json
+    load_args:
+        lines: True
+    layer: raw
+
+data_processing.categorical_encoders:
+    type: pickle.PickleDataSet
+    filepath: data/04_feature/categorical_encoders.pkl
+    backend: pickle
+    layer: data_prep
+
+data_processing.encoded_data:
+    type: pandas.CSVDataSet
+    filepath: data/02_intermediate/encoded_data.csv
+    save_args:
+        index: False
+    layer: data_prep
+
+data_processing.uid_iid_reassigned_data:
+    type: pandas.CSVDataSet
+    filepath: data/02_intermediate/uid_iid_reassigned_data.csv
+    save_args:
+        index: False
+    layer: data_prep
+
+data_processing.uid_iid_encoders:
+    type: pickle.PickleDataSet
+    filepath: data/04_feature/uid_iid_encoders.pkl
+    backend: pickle
+    layer: data_prep
+
+experiment_prep.X_train_features:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/X_train_features.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.X_train_ids:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/X_train_ids.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.X_test_features:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/X_test_features.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.X_test_ids:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/X_test_ids.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.y_train:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/y_train.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.y_test:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/y_test.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment.collaborative_filtering:
+    type: pickle.PickleDataSet
+    filepath: data/06_models/collaborative_filtering.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment.collaborative_filtering_test_metrics:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/colab_filt_test_metrics.json
+    layer: experiment
+
+experiment.colab_filtering_crossval_train_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/colab_filt_crossval_train_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.colab_filtering_crossval_val_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/colab_filt_crossval_val_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.colab_filt_crossval_summary:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/colab_filt_crossval_summary.json
+    layer: experiment
+
+experiment.deep_colab_filtering_crossval_train_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/deep_colab_filt_crossval_train_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.deep_colab_filtering_crossval_val_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/deep_colab_filt_crossval_val_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.deep_colab_filt_crossval_summary:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/deep_colab_filt_crossval_summary.json
+    layer: experiment
+
+experiment.deep_collaborative_filtering_test_metrics:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/deep_colab_filt_test_metrics.json
+    layer: experiment
+
+experiment.deep_hybrid_rec_crossval_train_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/deep_hybrid_rec_crossval_train_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.deep_hybrid_rec_crossval_val_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/deep_hybrid_rec_crossval_val_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.deep_hybrid_rec_crossval_summary:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/deep_hybrid_rec_crossval_summary.json
+    layer: experiment
+
+experiment.deep_hybrid_rec_test_metrics:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/deep_hybrid_rec_test_metrics.json
+    layer: experiment
+
+experiment.all_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/all_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+
+
+experiment.compare_metrics_plot:
+    type: plotly.PlotlyDataSet
+    filepath: data/08_reporting/compare_metrics_plot.json
+    versioned: true
+    plotly_args:
+        type: box
+        fig:
+            x: metric
+            y: value
+            color: model_name
+        layout:
+            title: Validation metrics comparison
+
+experiment.pairwise_comparisons:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/pairwise_comparisons.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.overall_comparisons:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/overall_comparisons.csv
+    save_args:
+        index: False
+    layer: experiment
+
+
+experiment.val_mape_table_plot_comparison:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mape_table_plot_comparison.json
+  versioned: true
+
+experiment.val_mse_table_plot_comparison:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mse_table_plot_comparison.json
+  versioned: true
+
+experiment.val_mae_table_plot_comparison:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mae_table_plot_comparison.json
+  versioned: true
+
+experiment.val_mae_table_plot_overall:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mae_table_plot_overall.json
+  versioned: true
+
+experiment.val_mape_table_plot_overall:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mape_table_plot_overall.json
+  versioned: true
+
+
+experiment.val_mse_table_plot_overall:
+  type: plotly.JSONDataSet
+  filepath: data/08_reporting/val_mse_table_plot_overall.json
+  versioned: true

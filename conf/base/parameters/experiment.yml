@@ -1,0 +1,45 @@
+# This is a boilerplate parameters config generated for pipeline 'experiment'
+# using Kedro 0.18.5.
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://kedro.readthedocs.io/en/0.18.5/kedro_project_setup/configuration.html#parameters
+
+collaborative_filtering:
+  id_embed_size: 32
+  batch_size: 64
+  hidden_sizes: []
+  logdir: logs/collaborative_filtering/
+  lr: 0.001
+  max_epochs: 10
+  kfold: 10
+  kfold_seed: 123
+  model_name: 'colab filtering'
+
+
+deep_collaborative_filtering:
+  id_embed_size: 32
+  batch_size: 64
+  hidden_sizes: [16, 16]
+  logdir: logs/deep_collaborative_filtering/
+  lr: 0.001
+  max_epochs: 10
+  kfold: 10
+  kfold_seed: 123
+  model_name: 'deep colab filtering'
+
+
+deep_hybrid_recommender:
+  batch_size: 64
+  uid_subet_specs: [64,  [32, 32]]
+  iid_subet_specs: [64,  [32, 32]]
+  cat_embedding_specs: [16, 3, 9,3, 3, 5]
+  cat_subnet_concat_specs: [32, 16]
+  dense_subnet_specs: [16]
+  dropout: 0.2
+  inner_activation_fn: 'tanh'
+  logdir: logs/deep_hybrid_recommender/
+  lr: 0.001
+  max_epochs: 20
+  kfold: 10
+  kfold_seed: 123
+  model_name: 'hybrid recommender'
