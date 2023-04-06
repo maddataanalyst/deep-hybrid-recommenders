@@ -19,6 +19,10 @@ This project offers a valuable resource for researchers and practitioners lookin
 This is your new Kedro project, which was generated using `Kedro 0.18.4`.
 Take a look at the [Kedro documentation](https://kedro.readthedocs.io) to get started.
 
+Author's official profiles can be found below:
+1. [Michał Górnik](https://www.linkedin.com/in/mgornik/)
+2. [Filip Wójcik](https://pl.linkedin.com/in/machinelearningspecialist), [official webiste](https://filip-wojcik.com/)
+
 # The data
 
 The performance of the aforementioned algorithms was evaluated using the realworld dataset, containing customer reviews: “Amazon 2018 Reviews Dataset” which is an updated version of the previous edition 
@@ -49,8 +53,8 @@ The experimental procedure was the same for all models:
 2. Each model type was cross-validated 10 times, and validation metrics were saved for further analsysis.
 3. Then each model was trained on a full train dataset and evaluated on the test set.
 4. Validation results of each model were compared using:
-   5. The non-parametric **Kruskal-Wallis test** - to assess the overall difference in the performance of the models.
-   6. **Using pairwise post-hoc tests** between all models, with the Bonferroni correction for multiple comparisons.
+   1. The non-parametric **Kruskal-Wallis test** - to assess the overall difference in the performance of the models.
+   2. **Using pairwise post-hoc tests** between all models, with the Bonferroni correction for multiple comparisons.
 
 **The post-hoc test results show that the Hybrid Recommender model is significantly better than the other two models in all cases**
 with large effect sizes on all metrics (MAPE/MSE/MAE).
@@ -156,5 +160,3 @@ kedro jupyter lab
 > McAuley, J., Targett, C., Shi, Q., and Van Den Hengel, A. (2015). Image-based recommendations on styles and substitutes. SIGIR 2015 -Proceedings of the 38th International ACM SIGIR Conference on Research and Development in Information Retrieval.
 
 > He, R., and McAuley, J. (2016). Ups and downs: Modeling the visual evolution of fashion trends with one-class collaborative filtering. In 25th International World Wide Web Conference, WWW 2016.
-
-> 
