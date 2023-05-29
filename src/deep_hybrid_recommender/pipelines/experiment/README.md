@@ -7,6 +7,7 @@ The main experimentation pipeline consists of a series of cross-validtion proced
 1. **Simple collaborative filtering**;
 2. **Deep collaborative filtering**;
 3. **Hybrid recommender** (Deep colaborative filtering with additional feature information).
+4. **GNN recommender** (recommendation engine based on graph neural networks).
 
 Within each cross-val procedure the following steps are performed:
 1. The data is split into train-validation K-times

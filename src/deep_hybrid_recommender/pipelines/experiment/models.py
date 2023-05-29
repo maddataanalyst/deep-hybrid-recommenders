@@ -1,10 +1,14 @@
-from typing import Tuple
+import enum
+from typing import Tuple, Callable
 
 import pytorch_lightning as pl
 import torch as th
 import torch.nn as nn
 import torchmetrics as tm
+import torch_geometric.nn as tgnn
+import torch_geometric.data as tgd
 
+from enum import Enum
 
 def _build_subnet(
         nelems: int,
@@ -207,3 +211,184 @@ class LitDeepHybridRecommender(pl.LightningModule):
 
 
 
+class GNNConvType(enum.Enum):
+
+    SAGE = 'Sage'
+    GAT = 'GAT'
+    GCN = 'GCN'
+    EDGE = 'Edge'
+    GIN = "GIN"
+
+
+class LitGNNRecommender(pl.LightningModule):
+
+    """
+    Lightning module for GNNRecommender model, that utilizes a GNN to learn user and item embeddings and
+    perform link predictions.
+    """
+
+    def __init__(
+            self,
+            nusers: int,
+            uembed_dim: int,
+            nitems: int,
+            iembed_dim: int,
+            graph:tgd.HeteroData,
+            cat_col_embeds: Tuple[Tuple[int, int], ...],
+            main_rel_name: Tuple[str, str, str],
+            h_dim = 16,
+            num_layers: int = 2,
+            gnn_act_f: str = 'relu',
+            subnet_act_f: nn.Module = nn.ReLU(),
+            dropout: float = 0.2,
+            use_item_features: bool = True,
+            learning_rate: float = 0.001,
+            gnn_type: GNNConvType = GNNConvType.SAGE,
+            jk: str = None,
+            crit = nn.MSELoss(),
+            batch_size: int = 64):
+        """
+        Initializes the model.
+
+        Parameters
+        ----------
+        nusers: int
+            Number of users in the dataset.
+        uembed_dim: int
+            Dimensionality of the user embeddings.
+        nitems: int
+            Number of items in the dataset.
+        iembed_dim: int
+            Dimensionality of the item embeddings.
+        graph: tgd.HeteroData
+            Graph data structure containing the user-item interactions and the item features. This is so-called
+            heterogeneous graph, where the nodes are of different types and the edges are of different types.
+        cat_col_embeds: Tuple[Tuple[int, int], ...]
+            Tuple of tuples, where each tuple contains the number of unique values and the embedding dimensionality for a
+            categorical feature.
+        main_rel_name: Tuple[str, str, str]
+            Name of the main relation in the graph, which is the relation that contains the user-item interactions.
+        h_dim: int
+            Dimensionality of the hidden layers in the GNN.
+        num_layers: int
+            Number of layers in the GNN.
+        gnn_act_f: str
+            Name of the activation function used in the GNN.
+        subnet_act_f: nn.Module
+            Activation function used in the subnetworks.
+        dropout: float
+            Dropout rate.
+        use_item_features: bool
+            Whether to use item features or not.
+        learning_rate: float
+            Learning rate.
+        gnn_type: GNNConvType
+            Type of the GNN convolution.
+        jk: str
+            Type of the jump knowledge aggregation. If None, no jump knowledge aggregation is performed. Jumping knowledge
+            aggregation is a technique that allows to aggregate information from all the layers of the GNN.
+        crit: nn.Module
+            Loss function.
+        batch_size: int
+            Batch size. It is needed for logging purposes. At this time, TorchGeometric used with PyTorchLightning
+            is not able to log the loss function value without a batch size, so we need to do it manually.
+        """
+        super().__init__()
+        self.main_rel_name = main_rel_name
+        self.batch_size = batch_size
+        self.crit = crit
+        self.learning_rate = learning_rate
+        self.dropout = dropout
+        self.uembed = nn.Embedding(num_embeddings=nusers, embedding_dim=uembed_dim)
+        self.iembed = nn.Embedding(num_embeddings=nitems, embedding_dim=iembed_dim)
+        self.use_item_features = use_item_features
+        gnn = self._initialize_gnn(gnn_act_f, gnn_type, h_dim, jk, num_layers)
+        self.gnn = tgnn.to_hetero(gnn, graph.metadata())
+
+        if self.use_item_features:
+            self.cat_data_subntes = nn.ModuleList()
+            for (cat_nitems, cat_embed_sz) in cat_col_embeds:
+                subnet = _build_subnet(cat_nitems, cat_embed_sz, [], self.dropout, subnet_act_f)
+                self.cat_data_subntes.append(subnet)
+
+    def _initialize_gnn(self, gnn_act_f, gnn_type, h_dim, jk, num_layers):
+        if gnn_type == GNNConvType.SAGE:
+            gnn = tgnn.GraphSAGE((-1, -1), h_dim, num_layers=num_layers, act=gnn_act_f, jk=jk)
+        elif gnn_type == GNNConvType.GAT:
+            gnn = tgnn.GAT((-1, -1), h_dim, num_layers=num_layers, act=gnn_act_f, v2=True, add_self_loops=False, jk=jk)
+        elif gnn_type == GNNConvType.GIN:
+            gnn = tgnn.GIN(-1, h_dim, num_layers=num_layers, act=gnn_act_f)
+        elif gnn_type == GNNConvType.EDGE:
+            gnn = tgnn.EdgeCNN((-1, -1), h_dim, num_layers=num_layers, act=gnn_act_f, jk=jk)
+        elif gnn_type == GNNConvType.GCN:
+            gnn = tgnn.GCN((-1, -1), h_dim, num_layers=num_layers, act=gnn_act_f, jk=jk)
+        else:
+            raise ValueError(f"Unknown GNN type: {gnn_type}")
+        return gnn
+
+    def forward(self, data: tgd.HeteroData) -> Tuple[th.Tensor, th.Tensor]:
+        """
+        Performs a forward pass through the model.
+
+        Parameters
+        ----------
+        data: tgd.HeteroData
+            Graph data structure containing the user-item interactions and the item features. This is so-called
+            heterogeneous graph, where the nodes are of different types and the edges are of different types.
+
+        Returns
+        -------
+        Tuple[th.Tensor, th.Tensor]
+            Tuple of tensors containing the user-item embeddings and their dotproduct (actual prediction).
+        """
+        u_embed = self.uembed(data['user'].x)
+        i_embed = self.iembed(data['item'].x)
+
+        if self.use_item_features:
+            features_mat = data['item'].feat
+            fembeds = th.cat([self.cat_data_subntes[i](features_mat[:, i]) for i in range(features_mat.size(1))], dim=-1)
+            item_data = th.cat([fembeds, i_embed.squeeze(1)], dim=-1)
+        else:
+            item_data = i_embed.squeeze(1)
+
+        x_dict = {
+            'user': u_embed.squeeze(1),
+            'item': item_data,
+        }
+        out = self.gnn.forward(x_dict, data.edge_index_dict)
+        superv_user = out['user'][data[self.main_rel_name].edge_label_index[0, :]]
+        superv_movie = out['item'][data[self.main_rel_name].edge_label_index[1, :]]
+        dotprod = (superv_user * superv_movie).sum(dim=-1)
+
+        return out, dotprod
+
+
+    def _perform_prediction(self, batch, phase: str, log: bool = True):
+        _, dotprod = self.forward(batch)
+        ytrain = batch[self.main_rel_name].edge_label.to(th.float)
+        yhat_train = dotprod
+
+        mse_loss = nn.functional.mse_loss(yhat_train, ytrain)
+        mape_loss = tm.functional.mean_absolute_percentage_error(yhat_train, ytrain)
+        mae_loss = tm.functional.mean_absolute_error(yhat_train, ytrain)
+        if log:
+            self.log(f"{phase}_MSE", mse_loss, batch_size=64)
+            self.log(f"{phase}_MAPE", mape_loss, batch_size=64)
+            self.log(f"{phase}_MAE", mae_loss, batch_size=64)
+
+        return {"loss": mse_loss, "MAPE": mape_loss, "MAE": mae_loss}
+
+    def training_step(self, batch, batch_index):
+        self.train()
+        return self._perform_prediction(batch, "train")
+
+    def validation_step(self, batch, batch_index):
+        self.eval()
+        return self._perform_prediction(batch, "val")
+
+    def test_step(self, batch, batch_index):
+        self.eval()
+        return self._perform_prediction(batch, "test")
+
+    def configure_optimizers(self):
+        return th.optim.Adam(self.parameters(), lr=self.learning_rate)

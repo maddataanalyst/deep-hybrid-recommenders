@@ -10,11 +10,18 @@ import plotly.graph_objs as go
 import pytorch_lightning as pl
 import torch as th
 import torch.nn as nn
+import torch_geometric.data as tgd
+import plotly.express as px
 
 import deep_hybrid_recommender.consts as cc
+import deep_hybrid_recommender.pipelines.experiment.graph_nn_training as gnns
 from deep_hybrid_recommender.pipelines.experiment.experiment_commons import cross_validate_model, \
     train_model_and_apply_on_test
-from deep_hybrid_recommender.pipelines.experiment.models import LitColabFiltering, LitDeepHybridRecommender
+from deep_hybrid_recommender.pipelines.experiment.models import (
+    LitColabFiltering,
+    LitDeepHybridRecommender,
+    LitGNNRecommender,
+    GNNConvType)
 
 ACTIVATION2TORCH = {
     'relu': nn.ReLU,
@@ -240,11 +247,136 @@ def train_deep_hybrid_recommender_and_test(
                                          tensorboard_logger, model_params[cc.MODEL_NAME], batch_size, max_epochs, True)
 
 
+def crossval_gnn_recommender(
+    train_graph: tgd.HeteroData,
+    id_encoders: dict,
+    cat_encoders: dict,
+    model_params: dict,
+):
+    batch_size = model_params[cc.PARAM_BATCH_SIZE]
+    kfolds = model_params[cc.PARAM_KFOLD]
+
+    nusers = id_encoders[cc.USER_ID_ENCODER].classes_.shape[0]
+    nitems = id_encoders[cc.ITEM_ID_ENCODER].classes_.shape[0]
+
+    cat_encoders_classes = [len(enc.classes_) for _, enc in cat_encoders.items()]
+
+    uembed_sz = model_params[cc.PARAM_UEMBED_SZ]
+    iembed_sz = model_params[cc.PARAM_IEMBED_SIZE]
+
+    cat_subnet_specs = [(cat_encoders_classes[i], model_params[cc.PARAM_CAT_EMBEDDING_SPECS][i]) for i in
+                        range(len(cat_encoders_classes))]
+
+    model_name = model_params[cc.MODEL_NAME]
+    logdir = model_params[cc.PARAM_LOGDIR]
+    max_epochs = model_params[cc.PARAM_MAX_EPOCHS]
+    batch_size = model_params[cc.PARAM_BATCH_SIZE]
+    gnn_layers = model_params[cc.PARAM_GNN_LAYERS]
+    jk_type = model_params[cc.PARAM_JK_TYPE]
+    gcn_type = GNNConvType[model_params[cc.PARAM_GNN_TYPE]]
+    gnn_act_f = model_params[cc.PARAM_GNN_ACT_F]
+    subnet_act_f = model_params[cc.PARAM_SUBNET_ACT_F]
+    main_rel = tuple(model_params[cc.PARAM_MAIN_REL])
+    gnn_h_dim = model_params[cc.PARAM_HIDDEN_SIZES]
+    use_item_features = model_params[cc.PARAM_USE_ITEM_FEATURES]
+    dropout = model_params[cc.PARAM_DROPOUT]
+    neg_sampling_ratio = model_params[cc.PARAM_NEG_SAMPLING_RATIO]
+
+    model_builder_f = lambda: LitGNNRecommender(
+        nusers,
+        uembed_sz,
+        nitems,
+        iembed_sz,
+        train_graph,
+        cat_subnet_specs,
+        main_rel,
+        gnn_h_dim,
+        gnn_layers,
+        gnn_act_f,
+        subnet_act_f,
+        use_item_features=use_item_features,
+        gnn_type=gcn_type,
+        jk=jk_type,
+        batch_size=batch_size,
+        dropout=dropout
+    )
+    return gnns.cross_validate_graph_model(
+        model_builder_f,
+        train_graph,
+        main_rel,
+        batch_size,
+        max_epochs,
+        neg_sampling_ratio,
+        logdir,
+        kfolds,
+        model_name)
+
+
+def train_gnn_recommender_and_test(
+        train_graph: tgd.HeteroData,
+        test_graph: tgd.HeteroData,
+        id_encoders: dict,
+        cat_encoders: dict,
+        model_params: dict
+):
+    """"
+    Train a GCN recommender model and save the predictions on the test set, as well as metrics.
+    """
+
+    nusers = id_encoders[cc.USER_ID_ENCODER].classes_.shape[0]
+    nitems = id_encoders[cc.ITEM_ID_ENCODER].classes_.shape[0]
+
+    cat_encoders_classes = [len(enc.classes_) for _, enc in cat_encoders.items()]
+
+    uembed_sz = model_params[cc.PARAM_UEMBED_SZ]
+    iembed_sz = model_params[cc.PARAM_IEMBED_SIZE]
+
+    cat_subnet_specs = [(cat_encoders_classes[i], model_params[cc.PARAM_CAT_EMBEDDING_SPECS][i]) for i in
+                        range(len(cat_encoders_classes))]
+
+    logdir = model_params[cc.PARAM_LOGDIR]
+    max_epochs = model_params[cc.PARAM_MAX_EPOCHS]
+    batch_size = model_params[cc.PARAM_BATCH_SIZE]
+    gnn_layers = model_params[cc.PARAM_GNN_LAYERS]
+    jk_type = model_params[cc.PARAM_JK_TYPE]
+    gcn_type = GNNConvType[model_params[cc.PARAM_GNN_TYPE]]
+    gnn_act_f = model_params[cc.PARAM_GNN_ACT_F]
+    subnet_act_f = model_params[cc.PARAM_SUBNET_ACT_F]
+    main_rel = tuple(model_params[cc.PARAM_MAIN_REL])
+    gnn_h_dim = model_params[cc.PARAM_HIDDEN_SIZES]
+    use_item_features = model_params[cc.PARAM_USE_ITEM_FEATURES]
+    dropout = model_params[cc.PARAM_DROPOUT]
+    neg_sampling_ratio = model_params[cc.PARAM_NEG_SAMPLING_RATIO]
+
+    model = LitGNNRecommender(
+        nusers,
+        uembed_sz,
+        nitems,
+        iembed_sz,
+        train_graph,
+        cat_subnet_specs,
+        main_rel,
+        gnn_h_dim,
+        gnn_layers,
+        gnn_act_f,
+        subnet_act_f,
+        use_item_features=use_item_features,
+        gnn_type=gcn_type,
+        jk=jk_type,
+        batch_size=batch_size,
+        dropout=dropout
+    )
+
+    return gnns.train_gnn_and_test(model, train_graph, test_graph, main_rel, batch_size, max_epochs, neg_sampling_ratio,
+                                   logdir)
+
+
 def analyze_results(
         colab_filtering_val_metrics: pd.DataFrame,
         deepl_colab_filtering_val_metrics: pd.DataFrame,
-        deep_hybrid_rec_val_metrics: pd.DataFrame
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure]:
+        deep_hybrid_rec_val_metrics: pd.DataFrame,
+        gnn_rec_val_metrics: pd.DataFrame
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure]:
     """
     This function performs a post-hoc analysis of the results obtained by the different models.
     It uses Kruskal Test to test whether the mean performance of the different models is significantly different.
@@ -263,23 +395,26 @@ def analyze_results(
         The validation metrics for the deep collaborative filtering model.
     deep_hybrid_rec_val_metrics
         The validation metrics for the deep hybrid recommender model.
+    gnn_rec_val_metrics
+        The validation metrics for the GNN recommender model.
 
     Returns
     -------
-    Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure]
+    Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure, go.Figure]
         The results of the overall test, the results of the pairwise test, and the plots.
     """
     colab_filt_melted = colab_filtering_val_metrics.melt(id_vars='model_name', var_name='metric')
     deep_colab_filt_melted = deepl_colab_filtering_val_metrics.melt(id_vars='model_name', var_name='metric')
     deep_hybrid_melted = deep_hybrid_rec_val_metrics.melt(id_vars='model_name', var_name='metric')
-    all_metrics = pd.concat([colab_filt_melted, deep_colab_filt_melted, deep_hybrid_melted], ignore_index=True)
+    gnn_melted = gnn_rec_val_metrics.melt(id_vars='model_name', var_name='metric')
+    all_metrics = pd.concat([colab_filt_melted, deep_colab_filt_melted, deep_hybrid_melted, gnn_melted], ignore_index=True)
 
     pairwise_comps = []
     overall_checks = []
     pairwise_figures = []
     overall_figures = []
-
-    for metric in ['val_MAPE', 'val_MSE', 'val_MAE']:
+    metrics_to_show = ['val_MAPE', 'val_MSE', 'val_MAE']
+    for metric in metrics_to_show:
         overall_compare, pairwise_compare = perform_statistical_comparison(all_metrics, metric)
         overall_compare['metric'] = metric
         pairwise_compare['metric'] = metric
@@ -308,11 +443,18 @@ def analyze_results(
         overall_figures.append(fig_overall)
 
 
+    complex_plot = px.box(
+        all_metrics.loc[all_metrics.metric.isin(metrics_to_show)],
+        color='model_name',
+        y='value',
+        facet_col='metric',
+        title='Validation metrics comparison')
+
     all_pairwise_comparisons = pd.concat(pairwise_comps, axis=0, ignore_index=True)
     all_overall_comparisons = pd.concat(overall_checks, axis=0, ignore_index=True)
 
     return all_metrics, all_pairwise_comparisons, all_overall_comparisons, pairwise_figures[0], pairwise_figures[1], \
-    pairwise_figures[2], overall_figures[0], overall_figures[1], overall_figures[2]
+    pairwise_figures[2], overall_figures[0], overall_figures[1], overall_figures[2], complex_plot
 
 
 def perform_statistical_comparison(all_metrics: pd.DataFrame, metric: str) -> Tuple[pd.DataFrame, pd.DataFrame]:

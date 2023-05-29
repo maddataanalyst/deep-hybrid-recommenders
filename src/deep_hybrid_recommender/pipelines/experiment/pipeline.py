@@ -8,13 +8,17 @@ from kedro.pipeline import Pipeline, node, pipeline
 from .nodes import (
     crossval_collaboartive_filtering,
     crossval_deep_hybrid_recommender,
+    crossval_gnn_recommender,
     train_colab_filtering_and_test,
     train_deep_hybrid_recommender_and_test,
+    train_gnn_recommender_and_test,
     analyze_results)
 
 
 def create_pipeline(**kwargs) -> Pipeline:
     return pipeline([
+
+
         node(
             func=crossval_collaboartive_filtering,
             inputs=[
@@ -52,11 +56,26 @@ def create_pipeline(**kwargs) -> Pipeline:
             name='crossval_deep_hybrid_rec'
         ),
         node(
+            func=crossval_gnn_recommender,
+            inputs=[
+                'experiment_prep.hetero_train_graph',
+                'data_processing.uid_iid_encoders',
+                'data_processing.categorical_encoders',
+                'params:gnn_recommender'
+            ],
+            outputs=[
+                'gnn_rec_crossval_train_metrics',
+                'gnn_rec_crossval_val_metrics',
+                'gnn_rec_crossval_summary'],
+            name='crossval_gnn_rec'
+        ),
+        node(
             func=analyze_results,
             inputs=[
                 'colab_filtering_crossval_val_metrics',
                 'deep_colab_filtering_crossval_val_metrics',
-                'deep_hybrid_rec_crossval_val_metrics'],
+                'deep_hybrid_rec_crossval_val_metrics',
+                'gnn_rec_crossval_val_metrics'],
             outputs=[
                 'all_metrics',
                 'pairwise_comparisons',
@@ -66,7 +85,8 @@ def create_pipeline(**kwargs) -> Pipeline:
                 'val_mae_table_plot_comparison',
                 'val_mape_table_plot_overall',
                 'val_mse_table_plot_overall',
-                'val_mae_table_plot_overall'],
+                'val_mae_table_plot_overall',
+                'complex_comparison_plot'],
             name='analyze_results'
         ),
         node(
@@ -107,13 +127,26 @@ def create_pipeline(**kwargs) -> Pipeline:
                 'params:deep_hybrid_recommender'],
             outputs='deep_hybrid_rec_test_metrics',
             name='train_hybrid_rec_and_test'
+        ),
+        node(
+            func=train_gnn_recommender_and_test,
+            inputs=[
+                'experiment_prep.hetero_train_graph',
+                'experiment_prep.hetero_test_graph',
+                'data_processing.uid_iid_encoders',
+                'data_processing.categorical_encoders',
+                'params:gnn_recommender'
+            ],
+            outputs='gnn_rec_test_metrics',
+            name='train_gnn_rec_and_test'
         )
     ],
         namespace='experiment',
         parameters={
             'params:collaborative_filtering': 'collaborative_filtering',
             'params:deep_collaborative_filtering': 'deep_collaborative_filtering',
-            'params:deep_hybrid_recommender': 'deep_hybrid_recommender'
+            'params:deep_hybrid_recommender': 'deep_hybrid_recommender',
+            'params:gnn_recommender': 'gnn_recommender',
         },
         inputs={
             'experiment_prep.X_train_features',
@@ -123,5 +156,7 @@ def create_pipeline(**kwargs) -> Pipeline:
             'experiment_prep.y_train',
             'experiment_prep.y_test',
             'data_processing.uid_iid_encoders',
-            'data_processing.categorical_encoders'
+            'data_processing.categorical_encoders',
+            'experiment_prep.hetero_train_graph',
+            'experiment_prep.hetero_test_graph'
         })

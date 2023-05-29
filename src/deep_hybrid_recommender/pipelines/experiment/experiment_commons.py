@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import copy
 import pandas as pd
 
-from typing import Callable
+from typing import Callable, Tuple
 from tqdm.auto import tqdm
 from collections import defaultdict
 from sklearn.model_selection import KFold
@@ -91,17 +91,44 @@ def cross_validate_model(
         for metric, values in metrics_callback.val_metrics.items():
             val_metrics[metric].append(values[-1])
 
+    return assemble_crossval_metrics(model_name, train_metrics, val_metrics)
+
+
+def assemble_crossval_metrics(
+        model_name: str,
+        train_metrics: dict,
+        val_metrics: dict) -> Tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """
+    Helper method for assembling metrics from cross-validation.
+
+    Parameters
+    ----------
+    model_name: str
+        Name of the model.
+    train_metrics: dict
+        Dictionary of train metrics.
+    val_metrics: dict
+        Dictionary of validation metrics.
+
+    Returns
+    -------
+    Tuple[pd.DataFrame, pd.DataFrame, dict]:
+        train_metrics: pd.DataFrame
+            Dataframe of train metrics.
+        val_metrics: pd.DataFrame
+            Dataframe of validation metrics.
+        metrics_summary_flat: dict
+            Dictionary of metrics summary, JSON-normalized.
+    """
     train_metrics = pd.DataFrame(train_metrics)
     train_metrics[cc.MODEL_NAME] = model_name
     val_metrics = pd.DataFrame(val_metrics)
     val_metrics[cc.MODEL_NAME] = model_name
-
     # Metrics summary
     train_summary = train_metrics.agg(['mean', 'std']).to_dict()
     val_summary = val_metrics.agg(['mean', 'std']).to_dict()
     metrics_summary = train_summary | val_summary
     metrics_summary_flat = pd.json_normalize(metrics_summary, sep="_").to_dict(orient='records')[0]
-
     return train_metrics, val_metrics, metrics_summary_flat
 
 

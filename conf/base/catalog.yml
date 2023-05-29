@@ -72,6 +72,18 @@ experiment_prep.y_test:
     backend: pickle
     layer: experiment_prep
 
+experiment_prep.hetero_train_graph:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/hetero_train_graph.pkl
+    backend: pickle
+    layer: experiment_prep
+
+experiment_prep.hetero_test_graph:
+    type: pickle.PickleDataSet
+    filepath: data/05_model_input/hetero_test_graph.pkl
+    backend: pickle
+    layer: experiment_prep
+
 experiment.collaborative_filtering:
     type: pickle.PickleDataSet
     filepath: data/06_models/collaborative_filtering.pkl
@@ -150,6 +162,31 @@ experiment.deep_hybrid_rec_test_metrics:
     filepath: data/09_tracking/deep_hybrid_rec_test_metrics.json
     layer: experiment
 
+
+experiment.gnn_rec_crossval_train_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/gnn_rec_crossval_train_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.gnn_rec_crossval_val_metrics:
+    type: pandas.CSVDataSet
+    filepath: data/08_reporting/gnn_rec_crossval_val_metrics.csv
+    save_args:
+        index: False
+    layer: experiment
+
+experiment.gnn_rec_crossval_summary:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/gnn_rec_crossval_summary.json
+    layer: experiment
+
+experiment.gnn_rec_test_metrics:
+    type: tracking.MetricsDataSet
+    filepath: data/09_tracking/gnn_rec_test_metrics.json
+    layer: experiment
+
 experiment.all_metrics:
     type: pandas.CSVDataSet
     filepath: data/08_reporting/all_metrics.csv
@@ -171,6 +208,13 @@ experiment.compare_metrics_plot:
             color: model_name
         layout:
             title: Validation metrics comparison
+
+experiment.complex_comparison_plot:
+    type: plotly.JSONDataSet
+    filepath: data/08_reporting/complex_comparison_plot.json
+    versioned: true
+    save_args:
+        engine: auto
 
 experiment.pairwise_comparisons:
     type: pandas.CSVDataSet

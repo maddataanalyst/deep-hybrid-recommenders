@@ -43,3 +43,25 @@ deep_hybrid_recommender:
   kfold: 10
   kfold_seed: 123
   model_name: 'hybrid recommender'
+
+gnn_recommender:
+  batch_size: 64
+  uembed_sz: 64
+  iembed_sz: 64
+  cat_embedding_specs: [16, 3, 9, 3, 3, 5]
+  gnn_type: 'SAGE'
+  jk_type: "last"
+  gnn_layers: 3
+  hidden_sizes: 128
+  gnn_act_f: 'relu'
+  subnet_act_f: 'relu'
+  main_rel: ['user', 'rates', 'item']
+  logdir: logs/gnn/
+  lr: 0.001
+  max_epochs: 50
+  kfold: 10
+  kfold_seed: 123
+  model_name: 'gnn recommender'
+  use_item_features: True
+  dropout: 0.1
+  neg_sampling_ratio: 0.0
