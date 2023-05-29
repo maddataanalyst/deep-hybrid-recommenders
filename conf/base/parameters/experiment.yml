@@ -52,7 +52,7 @@ gnn_recommender:
   gnn_type: 'SAGE'
   jk_type: "last"
   gnn_layers: 3
-  hidden_sizes: 128
+  hidden_sizes: 256
   gnn_act_f: 'relu'
   subnet_act_f: 'relu'
   main_rel: ['user', 'rates', 'item']
