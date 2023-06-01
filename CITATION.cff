@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Michał Górnik
+    orcid: https://orcid.org/0000-0002-3425-467X
+  - family-names: Filip Wójcik
+    orcid: https://orcid.org/0000-0001-5938-7260
+title: "Improvement of e-commerce recommendation systems with deep hybrid collaborative filtering with content: A case study"
+version: 1.0.0
+doi: 10.15611/eada.2020.3.03
+date-released: 2023-04-05
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Michał Górnik
+      orcid: https://orcid.org/0000-0002-3425-467X
+    - family-names: Filip Wójcik
+      orcid: https://orcid.org/0000-0001-5938-7260
+  doi: 10.15611/eada.2020.3.03
+  journal: "Econometrics. Ekonometria. Advances in Applied Data Analytics"
+  start: 37 # First page number
+  end: 50 # Last page number
+  title: "Improvement of e-commerce recommendation systems with deep hybrid collaborative filtering with content: A case study"
+  issue: 1
+  volume: 24
+  year: 2020
