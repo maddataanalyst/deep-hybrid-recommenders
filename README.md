@@ -12,7 +12,6 @@ This software project serves as supplementary material to the publication
 
 1. The paper can be found [here](https://sciendo.com/it/article/10.15611/eada.2020.3.03).
 2. Papers with code reference [here](https://paperswithcode.com/paper/improvement-of-e-commerce-recommendation)
-[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/improvement-of-e-commerce-recommendation/recommendation-systems-on-amazon-beauty)](https://paperswithcode.com/sota/recommendation-systems-on-amazon-beauty?p=improvement-of-e-commerce-recommendation)
 
 Structured as a software project rather than just a series of notebooks, **this project highlights the importance of organizing machine learning projects**. The use of **PyTorch and PyTorch Lightning** allows for easy experimentation and scaling, making it an ideal choice for building complex deep-learning models. Automating data processing pipelines simplifies the entire process and ensures that the model can be easily updated with new data.
 
